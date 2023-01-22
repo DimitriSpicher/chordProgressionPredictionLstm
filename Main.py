@@ -1,31 +1,20 @@
-import torch 
+import torch
+import torch.nn as nn 
 import numpy as np
-
-def buildVocabulary(chordSequences):
-
-    chordSet = sorted(set([chord for sequence in chordSequences for chord in sequence]))
-    token = np.arange(1, len(chordSet)+1)
-    vocabulary = dict(zip(chordSet,token))
-    vocabulary["<pad>"] = 0
-
-    return vocabulary
-
-def tokenize(chordSequence, vocabulary):
-    tokenizedSequence = [vocabulary[chord] for chord in chordSequence]
-    return tokenizedSequence
+import random
 
 class chordDataset(torch.utils.data.Dataset):
-    def __init__(self, chordSequences):
+    def __init__(self, chordSequences, vocabulary):
         self.chordSequences = chordSequences
-        self.vocabulary = buildVocabulary(self.chordSequences)
+        self.vocabulary = vocabulary
 
     def __len__(self):
         return len(self.chordSequences)
 
     def __getitem__(self,idx):
-        tokenizedSequence = torch.tensor(tokenize(self.chordSequences[idx], self.vocabulary))
+        tokenizedSequence = tokenize(self.chordSequences[idx], self.vocabulary)
         return tokenizedSequence
-
+# utils
 def load_data(path):
     with open (path) as file:
         fileAsString = file.readlines()[0]
@@ -40,11 +29,36 @@ def load_data(path):
 
     return chordSequences
 
+def tokenize(chordSequence, vocabulary):
+    tokenizedSequence = torch.Tensor([vocabulary[chord] for chord in chordSequence])
+    return tokenizedSequence
+
+def buildVocabulary(chordSequences):
+
+    chordSet = sorted(set([chord for sequence in chordSequences for chord in sequence]))
+    token = np.arange(1, len(chordSet)+1)
+    vocabulary = dict(zip(chordSet,token))
+    vocabulary["<pad>"] = 0
+
+    return vocabulary
+
+def splitData(chordSequences):
+    random.shuffle(chordSequences)
+    splitindex = int((len(chordSequences)*0.8))
+    trainSequences = chordSequences[:splitindex]
+    testSequences = chordSequences[splitindex:]
+
+    return trainSequences, testSequences
 
 def main(path):
-    chordSequences=load_data(path)
-    x = chordDataset(chordSequences=chordSequences)
-    print((x.__getitem__(3)))
+    chordSequences = load_data(path)
+
+    vocabulary = buildVocabulary(chordSequences)
+
+    trainSequences, testSequences = splitData(chordSequences)
+
+    trainData = chordDataset(chordSequences=trainSequences, vocabulary=vocabulary)
+    testData = chordDataset(chordSequences=testSequences, vocabulary=vocabulary)
     
     return
 
