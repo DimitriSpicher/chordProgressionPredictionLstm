@@ -1,12 +1,17 @@
 import torch 
+import numpy as np
 
 def buildVocabulary(chordSequences):
 
-    vocabulary = {}
+    chordSet = sorted(set([chord for sequence in chordSequences for chord in sequence]))
+    token = np.arange(1, len(chordSet)+1)
+    vocabulary = dict(zip(chordSet,token))
+    vocabulary["<pad>"] = 0
+
     return vocabulary
 
 def tokenize(chordSequence, vocabulary):
-    tokenizedSequence = chordSequence
+    tokenizedSequence = [vocabulary[chord] for chord in chordSequence]
     return tokenizedSequence
 
 class chordDataset(torch.utils.data.Dataset):
@@ -18,9 +23,8 @@ class chordDataset(torch.utils.data.Dataset):
         return len(self.chordSequences)
 
     def __getitem__(self,idx):
-        chordSequence = self.chordSequences[idx]
-        tokenizedSequence = tokenize(chordSequence, self.vocabulary)
-        return chordSequence
+        tokenizedSequence = torch.tensor(tokenize(self.chordSequences[idx], self.vocabulary))
+        return tokenizedSequence
 
 def load_data(path):
     with open (path) as file:
@@ -38,9 +42,9 @@ def load_data(path):
 
 
 def main(path):
-    print("hello world")
     chordSequences=load_data(path)
-    print(chordDataset(chordSequences).__getitem__(2))
+    x = chordDataset(chordSequences=chordSequences)
+    print((x.__getitem__(3)))
     
     return
 
