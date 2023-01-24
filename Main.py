@@ -31,7 +31,7 @@ class LstmChordPredictor(nn.Module):
 
             outputs.append(output)
 
-        return outputs
+        return torch.cat(outputs, dim=1)
 
 class chordDataset(torch.utils.data.Dataset):
     def __init__(self, chordSequences, vocabulary):
@@ -82,7 +82,29 @@ def splitData(chordSequences):
 
     return trainSequences, testSequences
 
+
+def training_loop(trainDataLoader, model, optimizer, criterion, epochs):
+    
+    for epoch in epochs:
+        sequence = next(iter(trainDataLoader))
+        
+        
+        optimizer.zero_grad()
+        output = model(sequence)
+
+        loss = criterion(output.squeeze()[:-1], sequence.squeeze()[1:])
+        print(epoch)
+        print(loss)
+
+        loss.backward()
+
+        optimizer.step()
+
+    return 
+
+
 def main(path):
+    learningRate = 0.003
     chordSequences = load_data(path)
 
     vocabulary = buildVocabulary(chordSequences)
@@ -95,15 +117,12 @@ def main(path):
     testDataLoader = DataLoader(testData, batch_size=1)
 
     model = LstmChordPredictor()
-    epochs = np.arange(0, len(trainSequences))
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learningRate)
+
+    epochs = np.arange(0, 10)
     
-    
-    sequence = next(iter(trainDataLoader))
-    print (sequence.size())
-    print(sequence.split(1, dim=1))
-    output = model(sequence)
-    print(len(output))
-    
+    training_loop(trainDataLoader, model, optimizer, criterion, epochs)
 
     return
 
