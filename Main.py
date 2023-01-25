@@ -68,9 +68,8 @@ def tokenize(chordSequence, vocabulary):
 def buildVocabulary(chordSequences):
 
     chordSet = sorted(set([chord for sequence in chordSequences for chord in sequence]))
-    token = np.arange(1, len(chordSet)+1)
+    token = np.arange(0, len(chordSet))
     vocabulary = dict(zip(chordSet,token))
-    vocabulary["<pad>"] = 0
 
     return vocabulary
 
@@ -84,24 +83,38 @@ def splitData(chordSequences):
 
 
 def training_loop(trainDataLoader, model, optimizer, criterion, epochs):
-    
+
+    trainLosses = []
+
     for epoch in epochs:
         sequence = next(iter(trainDataLoader))
-        
         
         optimizer.zero_grad()
         output = model(sequence)
 
-        loss = criterion(output.squeeze()[:-1], sequence.squeeze()[1:])
-        print(epoch)
-        print(loss)
+        trainLoss = criterion(output.squeeze()[:-1], sequence.squeeze()[1:])
+        print(f"epoch: {epoch}")
+        print(f"trainLoss: {trainLoss}")
+        trainLosses.append(trainLoss)
 
-        loss.backward()
+        trainLoss.backward()
 
         optimizer.step()
 
-    return 
+    return trainLosses
 
+
+def test_loop(testDataLoader, model, criterion):
+
+    testLosses = []
+
+    for testSequence in testDataLoader:
+        output = model(testSequence)
+        testLoss = criterion(output.squeeze()[:-1], testSequence.squeeze()[1:])
+        print(f"TestLoss: {testLoss}")
+        testLosses.append(testLoss)
+
+    return testLosses
 
 def main(path):
     learningRate = 0.003
@@ -120,9 +133,10 @@ def main(path):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learningRate)
 
-    epochs = np.arange(0, 10)
+    epochs = np.arange(0, len(trainSequences))
     
-    training_loop(trainDataLoader, model, optimizer, criterion, epochs)
+    trainLoss = training_loop(trainDataLoader, model, optimizer, criterion, epochs)
+    testLoss = test_loop(testDataLoader, model, criterion)
 
     return
 
